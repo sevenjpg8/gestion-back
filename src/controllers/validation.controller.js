@@ -11,7 +11,7 @@ export const verificarDNI = async (req, res) => {
     }
 
     try {
-        const response = await axios.get('https://api.apis.net.pe/v2/reniec/dni', {
+        const response = await axios.get('https://api.decolecta.com/v1/reniec/dni', {
         params: { numero },
         headers: {
             Accept: 'application/json',

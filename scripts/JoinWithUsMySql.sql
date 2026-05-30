@@ -82,11 +82,11 @@ CREATE TABLE Reviews (
 CREATE TABLE Notifications (
     NotificationId INT AUTO_INCREMENT PRIMARY KEY,
     UserId INT NOT NULL,
-    Type VARCHAR(50),
-    Message TEXT,
-    ReadStatus BOOLEAN DEFAULT FALSE,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (UserId) REFERENCES Users(UserId)
+    EventId INT NOT NULL,
+    Message TEXT NOT NULL,
+    IsRead BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId),
+    FOREIGN KEY (EventId) REFERENCES Events(EventId)
 );
 
 -- Insertar registros en la tabla de Usuarios

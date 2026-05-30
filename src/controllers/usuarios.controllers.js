@@ -94,8 +94,8 @@ export const loginUsuario = async (req, res) => {
         const isProduction = process.env.NODE_ENV === 'production';
         res.cookie('tokenUsuario', token, {
             httpOnly: true,
-            secure: true, // true en producción (HTTPS)
-            sameSite:"None",
+            secure: isProduction,        // ← false en local, true en prod
+            sameSite: isProduction ? 'None' : 'Lax',  // ← Lax funciona en local same-site
             maxAge: 1000 * 60 * 60 * 24 * 30,
             path: '/',
         });
@@ -123,7 +123,7 @@ export const logoutUsuario = async (req, res) => {
     res.clearCookie('tokenUsuario', {
         httpOnly: true,
         secure: true,
-        sameSite:"None",
+        sameSite: "None",
         path: '/',
     });
 
@@ -216,100 +216,100 @@ export const deleteUsuario = async (req, res) => {
 };
 
 export const cambiarPassword = async (req, res) => {
-  const { id } = req.params
-  const { currentPassword, newPassword, requireCurrent = true } = req.body
+    const { id } = req.params
+    const { currentPassword, newPassword, requireCurrent = true } = req.body
 
-  try {
-    const user = await User.findByPk(id)
+    try {
+        const user = await User.findByPk(id)
 
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" })
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado" })
+        }
+
+        if (requireCurrent) {
+            const match = await bcrypt.compare(currentPassword, user.PasswordHash)
+            if (!match) {
+                return res.status(400).json({ message: "La contraseña actual es incorrecta" })
+            }
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10)
+        user.PasswordHash = hashedNewPassword
+        await user.save()
+
+        return res.status(200).json({ message: "Contraseña actualizada correctamente" })
+    } catch (error) {
+        console.error("Error al cambiar contraseña:", error)
+        return res.status(500).json({ message: "Error del servidor" })
     }
-
-    if (requireCurrent) {
-      const match = await bcrypt.compare(currentPassword, user.PasswordHash)
-      if (!match) {
-        return res.status(400).json({ message: "La contraseña actual es incorrecta" })
-      }
-    }
-
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10)
-    user.PasswordHash = hashedNewPassword
-    await user.save()
-
-    return res.status(200).json({ message: "Contraseña actualizada correctamente" })
-  } catch (error) {
-    console.error("Error al cambiar contraseña:", error)
-    return res.status(500).json({ message: "Error del servidor" })
-  }
 }
 
 export const obtenerUsuarioPorEmail = async (req, res) => {
-  const { email } = req.params;
+    const { email } = req.params;
 
-  try {
-    const usuario = await User.findOne({ where: { email } });
+    try {
+        const usuario = await User.findOne({ where: { email } });
 
-    if (!usuario) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
+        if (!usuario) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        res.json(usuario);
+    } catch (error) {
+        console.error("Error al buscar usuario por email:", error);
+        res.status(500).json({ message: "Error del servidor" });
     }
-
-    res.json(usuario);
-  } catch (error) {
-    console.error("Error al buscar usuario por email:", error);
-    res.status(500).json({ message: "Error del servidor" });
-  }
 };
 
 export const enviarEnlaceReset = async (req, res) => {
-  const { email, cliente } = req.body;
+    const { email, cliente } = req.body;
 
-  //console.log("📥 Solicitud de restablecimiento recibida para:", email);
+    //console.log("📥 Solicitud de restablecimiento recibida para:", email);
 
-  try {
-    const usuario = await User.findOne({ where: { Email: email } });
+    try {
+        const usuario = await User.findOne({ where: { Email: email } });
 
-    if (!usuario) {
-      console.log("❌ Usuario no encontrado con el email:", email);
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
+        if (!usuario) {
+            console.log("❌ Usuario no encontrado con el email:", email);
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
 
-    //console.log("✅ Usuario encontrado:", {id: usuario.id, Email: usuario.Email,});
+        //console.log("✅ Usuario encontrado:", {id: usuario.id, Email: usuario.Email,});
 
-    const resetToken = jwt.sign(
-      {
-        userId: usuario.UserId,
-        email: usuario.Email,
-      },
-      JWT_SECRET,
-      { expiresIn: "15m" }
-    );
+        const resetToken = jwt.sign(
+            {
+                userId: usuario.UserId,
+                email: usuario.Email,
+            },
+            JWT_SECRET,
+            { expiresIn: "15m" }
+        );
 
-    //console.log("🔐 Token generado:", resetToken);
+        //console.log("🔐 Token generado:", resetToken);
 
-     // URL base según el cliente
-    const baseUrl =
-      cliente === "ecommerce"
-        ? "https://joinwithus.vercel.app/usuario"
-        : "https://sistemajoinwithus.vercel.app"; // Por defecto "gestion"
+        // URL base según el cliente
+        const baseUrl =
+            cliente === "ecommerce"
+                ? "https://joinwithus.vercel.app/usuario"
+                : "https://sistemajoinwithus.vercel.app"; // Por defecto "gestion"
 
-    const resetLink = `${baseUrl}/changePassword?token=${resetToken}`;
-    //console.log("🔗 Enlace de restablecimiento:", resetLink);
+        const resetLink = `${baseUrl}/changePassword?token=${resetToken}`;
+        //console.log("🔗 Enlace de restablecimiento:", resetLink);
 
-    // ENVÍO DEL CORREO
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+        // ENVÍO DEL CORREO
+        const transporter = nodemailer.createTransport({
+            service: "Gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
 
-    await transporter.sendMail({
-      from: `"JoinWithUs" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Restablece tu contraseña",
-     html: `
+        await transporter.sendMail({
+            from: `"JoinWithUs" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "Restablece tu contraseña",
+            html: `
   <div style="font-family: Arial, sans-serif; background-color: #121212; padding: 20px; color: #e0e0e0;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);">
       <div style="background-color: #2d2d2d; color: #ffffff; padding: 24px; text-align: center;">
@@ -333,14 +333,14 @@ export const enviarEnlaceReset = async (req, res) => {
     </div>
   </div>
 `
-,
-    });
+            ,
+        });
 
-    //console.log("✉️ Correo enviado exitosamente a:", email);
+        //console.log("✉️ Correo enviado exitosamente a:", email);
 
-    res.json({ message: "Enlace de restablecimiento enviado al correo." });
-  } catch (error) {
-    console.error("💥 Error al enviar correo:", error);
-    res.status(500).json({ message: "Error al enviar correo." });
-  }
+        res.json({ message: "Enlace de restablecimiento enviado al correo." });
+    } catch (error) {
+        console.error("💥 Error al enviar correo:", error);
+        res.status(500).json({ message: "Error al enviar correo." });
+    }
 };
