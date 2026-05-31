@@ -69,7 +69,6 @@ CREATE TABLE Orders (
 -- Tabla de Reseñas
 CREATE TABLE Reviews (
     ReviewId INT AUTO_INCREMENT PRIMARY KEY,
-    EventId INT NOT NULL,
     UserId INT NOT NULL,
     Rating INT NOT NULL CHECK (Rating BETWEEN 1 AND 5),
     Comment TEXT,
