@@ -34,7 +34,7 @@ export const validarTelefono = async (req, res) => {
     const { numero } = req.body;
 
     try {
-        const response = await axios.get("https://phonevalidation.abstractapi.com/v1/", {
+        const response = await axios.get("https://phoneintelligence.abstractapi.com/v1/", {
         params: {
             api_key: process.env.ABSTRACT_PHONE_API_KEY,
             phone: numero,
@@ -42,13 +42,16 @@ export const validarTelefono = async (req, res) => {
         },
         });
 
-        const { valid, country, type } = response.data;
+        const data = response.data;
+
+        // ✅ Cambio clave: leer phone_validation.is_valid
+        const isValid = data?.phone_validation?.is_valid === true;
 
         res.json({
-            valido: valid,
-            pais: country?.name,
-            tipo: type,
-            detalles: response.data,
+            valido: isValid,
+            pais: data?.phone_location?.country_name,
+            tipo: data?.phone_carrier?.line_type,
+            detalles: data,
         });
     } catch (error) {
         console.error("Error al validar el número:", error?.response?.data || error.message);
@@ -60,24 +63,26 @@ export const validarEmail = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const response = await axios.get("https://emailvalidation.abstractapi.com/v1/", {
-        params: {
-            api_key: process.env.ABSTRACT_EMAIL_API_KEY,
-            email,
-        },
+        const response = await axios.get("https://emailreputation.abstractapi.com/v1/", {
+            params: {
+                api_key: process.env.ABSTRACT_EMAIL_API_KEY,
+                email,
+            },
         });
 
-        const { is_valid_format, is_mx_found, is_smtp_valid, deliverability } = response.data;
+        const data = response.data;
 
+        // ✅ Leer los campos reales que devuelve la API
         const esValido =
-        is_valid_format?.value &&
-        is_mx_found?.value &&
-        is_smtp_valid?.value &&
-        deliverability === "DELIVERABLE";
+            data?.email_deliverability?.status === "deliverable" &&
+            data?.email_deliverability?.is_format_valid === true &&
+            data?.email_deliverability?.is_mx_valid === true &&
+            data?.email_deliverability?.is_smtp_valid === true;
 
-        res.json({ valido: esValido, detalles: response.data });
+        res.json({ valido: esValido, detalles: data });
+
     } catch (error) {
         console.error("Error en validarEmail:", error?.response?.data || error.message);
         res.status(500).json({ error: "Error al validar el correo electrónico" });
     }
-}
+};
