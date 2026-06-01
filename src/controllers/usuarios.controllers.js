@@ -1,10 +1,10 @@
 import User from '../models/Usuario/Usuario.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
-
+import { Resend } from 'resend';
 
 const JWT_SECRET = process.env.JWT_SECRET
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const generarToken = (user) => {
     return jwt.sign(
@@ -290,23 +290,15 @@ export const enviarEnlaceReset = async (req, res) => {
         // URL base según el cliente
         const baseUrl =
             cliente === "ecommerce"
-                ? "https://joinwithus.vercel.app/usuario"
-                : "https://sistemajoinwithus.vercel.app"; // Por defecto "gestion"
+                ? process.env.FRONTEND_ECOMMERCE_URL
+                : process.env.FRONTEND_GESTION_URL;// Por defecto "gestion"
 
         const resetLink = `${baseUrl}/changePassword?token=${resetToken}`;
         //console.log("🔗 Enlace de restablecimiento:", resetLink);
 
-        // ENVÍO DEL CORREO
-        const transporter = nodemailer.createTransport({
-            service: "Gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
-
-        await transporter.sendMail({
-            from: `"JoinWithUs" <${process.env.EMAIL_USER}>`,
+        await resend.emails.send({
+            from: 'JoinWithUs <onboarding@resend.dev>',
+            replyTo: 'miguelallca2702@gmail.com',
             to: email,
             subject: "Restablece tu contraseña",
             html: `
