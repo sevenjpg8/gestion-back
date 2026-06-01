@@ -298,8 +298,8 @@ export const enviarEnlaceReset = async (req, res) => {
 
         await resend.emails.send({
             from: 'JoinWithUs <onboarding@resend.dev>',
-            replyTo: 'miguelallca2702@gmail.com',
-            to: email,
+            replyTo: process.env.EMAIL_USER,
+            to: process.env.EMAIL_USER,
             subject: "Restablece tu contraseña",
             html: `
   <div style="font-family: Arial, sans-serif; background-color: #121212; padding: 20px; color: #e0e0e0;">
