@@ -1,4 +1,3 @@
-//index.js
 import app from './app.js';
 import sequelize from './config/connection.js';
 import dotenv from 'dotenv';
@@ -7,54 +6,53 @@ import { Server } from 'socket.io';
 
 dotenv.config();
 
+// Obtener origins desde .env
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [];
 
-// Crear el servidor HTTP manualmente
+// Crear servidor HTTP
 const server = http.createServer(app);
 
-// Configurar Socket.IO con CORS
+// Configurar Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002', 
-      'https://sistemajoinwithus.vercel.app',
-      'https://joinwithus.vercel.app'
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
   transports: ['websocket']
-})
+});
 
-// Guardar `io` en global para usarlo en controladores
+// Hacer disponible io globalmente
 global.io = io;
 
-// Eventos de conexión de WebSocket
+// Eventos Socket.IO
 io.on('connection', (socket) => {
-  //console.log('🟢 Cliente conectado por WebSocket');
+  console.log('🟢 Cliente conectado');
 
   socket.on('joinRoom', (userId) => {
-    //console.log(`👥 Usuario ${userId} se unió a la sala user-${userId}`);
     socket.join(`user-${userId}`);
+    console.log(`👥 Usuario ${userId} unido a user-${userId}`);
   });
 
   socket.on('disconnect', () => {
-   //console.log('🔴 Cliente desconectado del WebSocket');
+    console.log('🔴 Cliente desconectado');
   });
 });
 
-// Conectar a la base de datos
-await sequelize.authenticate()
-  .then(() => {
-    //console.log('Conexión a la base de datos establecida correctamente.');
+// Conexión BD e inicio del servidor
+try {
+  await sequelize.authenticate();
+  console.log('✅ Base de datos conectada');
 
-    // Iniciar el servidor
-    const PORT = process.env.APP_PORT || 3000;
-    server.listen(PORT, () => {
-      console.log(`✅ Servidor iniciado exitosamente`);
-    });
-  })
-  .catch(err => {
-    console.error('No se pudo conectar a la base de datos:', err);
+  const PORT = process.env.APP_PORT || 3000;
+
+  server.listen(PORT, () => {
+    console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
+    console.log('🌐 Origins permitidos:', allowedOrigins);
   });
+
+} catch (error) {
+  console.error('❌ Error al conectar a la base de datos:', error);
+}

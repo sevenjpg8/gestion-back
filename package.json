@@ -25,7 +25,7 @@
     "morgan": "^1.10.0",
     "mssql": "^11.0.1",
     "mysql2": "^3.14.1",
-    "resend": "^6.12.4",
+    "nodemailer": "^8.0.10",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "stripe": "^18.1.0",

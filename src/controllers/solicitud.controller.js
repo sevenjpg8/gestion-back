@@ -1,6 +1,4 @@
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import nodemailer from "nodemailer";
 
 export const enviarSolicitud = async (req, res) => {
   const { dni, nombre, email, telefono, razon } = req.body;
@@ -10,9 +8,18 @@ export const enviarSolicitud = async (req, res) => {
   }
 
   try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
     const mailOptions = {
-      from: "JoinWithUs <onboarding@resend.dev>",
-      to: process.env.EMAIL_USER,
+      from: `"JoinWithUs" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_ADMIN,
+      replyTo: email,
       subject: "Nueva Solicitud de Cambio de Rol",
       html: `
 <div style="background-color: #0e0e0e; color: #f1f1f1; font-family: 'Segoe UI', sans-serif; padding: 2rem; border-radius: 12px; max-width: 640px; margin: auto; box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);">
@@ -54,7 +61,7 @@ export const enviarSolicitud = async (req, res) => {
       `,
     };
 
-    await resend.emails.send(mailOptions);
+    await transporter.sendMail(mailOptions);
     res.status(200).json({ message: "Correo enviado correctamente." });
   } catch (error) {
     console.error("Error al enviar correo:", error);

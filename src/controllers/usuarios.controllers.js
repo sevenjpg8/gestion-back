@@ -1,10 +1,9 @@
 import User from '../models/Usuario/Usuario.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 const JWT_SECRET = process.env.JWT_SECRET
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const generarToken = (user) => {
     return jwt.sign(
@@ -291,15 +290,23 @@ export const enviarEnlaceReset = async (req, res) => {
         const baseUrl =
             cliente === "ecommerce"
                 ? process.env.FRONTEND_ECOMMERCE_URL
-                : process.env.FRONTEND_GESTION_URL;// Por defecto "gestion"
+                : process.env.FRONTEND_GESTION_URL; // Por defecto "gestion"
 
         const resetLink = `${baseUrl}/changePassword?token=${resetToken}`;
         //console.log("🔗 Enlace de restablecimiento:", resetLink);
 
-        await resend.emails.send({
-            from: 'JoinWithUs <onboarding@resend.dev>',
-            replyTo: process.env.EMAIL_USER,
-            to: process.env.EMAIL_USER,
+        // ENVÍO DEL CORREO
+        const transporter = nodemailer.createTransport({
+            service: "Gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"JoinWithUs" <${process.env.EMAIL_USER}>`,
+            to: email,
             subject: "Restablece tu contraseña",
             html: `
   <div style="font-family: Arial, sans-serif; background-color: #121212; padding: 20px; color: #e0e0e0;">
